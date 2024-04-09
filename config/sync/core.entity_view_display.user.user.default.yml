@@ -1,0 +1,44 @@
+uuid: 4dc9382f-7eec-417a-a4ab-d51b3d598a5a
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.user.user.field_mobile
+    - field.field.user.user.user_picture
+    - image.style.thumbnail
+  module:
+    - image
+    - mobile_number
+    - user
+_core:
+  default_config_hash: mZLyuWM9CQx2ZJVqFGSbzgFnHzudVbHBYmdU256A5Wk
+id: user.user.default
+targetEntityType: user
+bundle: user
+mode: default
+content:
+  field_mobile:
+    type: mobile_number_international
+    label: above
+    settings:
+      as_link: false
+    third_party_settings: {  }
+    weight: 1
+    region: content
+  member_for:
+    settings: {  }
+    third_party_settings: {  }
+    weight: 2
+    region: content
+  user_picture:
+    type: image
+    label: hidden
+    settings:
+      image_link: content
+      image_style: thumbnail
+      image_loading:
+        attribute: lazy
+    third_party_settings: {  }
+    weight: 0
+    region: content
+hidden: {  }

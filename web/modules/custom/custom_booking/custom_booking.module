@@ -1,0 +1,486 @@
+<?php
+
+/**
+ * @file
+ * Contains generic functions.
+ */
+
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\HtmlCommand;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\node\Entity\Node;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\user\Entity\User;
+use Drupal\views\Plugin\views\query\QueryPluginBase;
+use Drupal\views\ViewExecutable;
+use Drupal\webform\Entity\WebformSubmission;
+use Drupal\webform\WebformSubmissionInterface;
+
+/**
+ * Implements hook_help().
+ */
+function custom_booking_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.custom_booking':
+
+      return '<p>' . t('A custom module to handle a booking alterations.') . '</p>';
+
+    default:
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function custom_booking_form_alter(&$form, &$form_state, $form_id) {
+  // Get current user role.
+  $currentUser = \Drupal::currentUser();
+  $roles = $currentUser->getRoles();
+  // Weform form alter.
+  if ($form_id == 'webform_submission_create_booking_add_form' || $form_id == 'webform_submission_create_booking_edit_form') {
+    // Attached jquery daterange library.
+    $form['#attached']['library'][] = 'custom_booking/global-library';
+    $form['#attached']['library'][] = 'custom_booking/calender-datepicker';
+    // Add id and daterange attribute in start and end date fields.
+    $form['elements']['booking_dates']['flexbox']['start_date']['#attributes']['id'] = 'start-date';
+    $form['elements']['booking_dates']['flexbox']['end_date']['#attributes']['id'] = 'end-date';
+    $form['elements']['booking_dates']['flexbox']['start_date']['#attributes']['data-date-range-end'] = '#end-date';
+    $form['elements']['booking_dates']['flexbox']['end_date']['#attributes']['data-date-range-start'] = '#start-date';
+
+    // Add wrapper to ajax call.
+    $form['elements']['booking_details']['assign_room']['#prefix'] = '<div id="ajax-wrapper-field-offices">';
+    $form['elements']['booking_details']['assign_room']['#suffix'] = '</div>';
+    // Ajax call.
+    $form['elements']['booking_details']['guesthouse']['#ajax'] = [
+      'event' => 'change',
+      'callback' => 'custom_booking_update_room_list_callback',
+      'wrapper' => 'ajax-wrapper-field-offices',
+    ];
+    $guesthouseId = $form_state->getValue('guesthouse');
+    if (!empty($guesthouseId)) {
+      $commonService = \Drupal::service('common_services');
+      $guesthouseId = $form_state->getValue('guesthouse');
+      $startDate = $form_state->getValue('start_date');
+      $endDate = $form_state->getValue('end_date');
+      $options = $commonService->getRoomListOptions($guesthouseId, $startDate, $endDate);
+      $form['elements']['booking_details']['assign_room']['#options'] = $options;
+
+      // Added js and css for webform.
+      $form['#attached']['library'][] = 'custom_booking/global-library';
+    }
+    // Called custom validation.
+    $form['#validate'][] = 'custom_booking_webform_custom_booking_validation';
+  }
+
+  // Guesthouse taxonomy form alter.
+  if ($form_id == 'taxonomy_term_guesthouse_form') {
+    if (in_array('admin_team', $roles)) {
+      $form['#title'] = t('Add Guesthouse');
+      $form['relations']['#access'] = FALSE;
+      $form['actions']['overview']['#access'] = FALSE;
+    }
+  }
+
+  // Hide preview button from room form.
+  if ($form_id == 'node_rooms_form') {
+    if (in_array('admin_team', $roles)) {
+      $form['actions']['preview']['#access'] = FALSE;
+    }
+  }
+}
+
+/**
+ * Implements hook_views_exposed_form_alter().
+ */
+function custom_booking_form_views_exposed_form_alter(&$form, &$form_state, $form_id) {
+  if ($form["#id"] == 'views-exposed-form-room-availability-page-1' || $form["#id"] == 'views-exposed-form-booking-history-booking-list') {
+    // Added start and end date filter for room availablity page.
+    $form['start_date'] = [
+      '#type' => 'date',
+      '#title' => t('Start Date'),
+      '#default_value' => date("Y-m-d"),
+    ];
+
+    $form['end_date'] = [
+      '#type' => 'date',
+      '#title' => t('End Date'),
+      '#default_value' => date("Y-m-d"),
+    ];
+  }
+}
+
+/**
+ * View Query alter Hook for Intro Meeting filter .
+ */
+function custom_booking_views_query_alter(ViewExecutable $view, QueryPluginBase $query) {
+  // All boking view on availblity popup alter.
+  if ($view->id() == 'booking_history' && $view->current_display == 'booking_list') {
+    // Get all param from url.
+    $startDate = \Drupal::request()->query->get('start_date');
+    $endDate = \Drupal::request()->query->get('end_date');
+    $guesthouse = \Drupal::request()->query->get('guesthouse');
+    $assignRoom = \Drupal::request()->query->get('assign_room');
+    if (!empty($startDate) && !empty($endDate)) {
+      $commonService = \Drupal::service('common_services');
+      // Get all booking ids.
+      $bookedRoomNids = $commonService->getBookedNids($startDate, $endDate, $assignRoom, $guesthouse);
+      // Show only those booking in selected start and end date periods.
+      if (empty($bookedRoomNids)) {
+        $bookedRoomNids = [0];
+      }
+      $query->addWhere('AND', 'webform_submission.sid', $bookedRoomNids, 'IN');
+    }
+  }
+}
+
+/**
+ * Implements hook_views_pre_render().
+ */
+function custom_booking_views_pre_render(ViewExecutable $view) {
+  if ($view->id() == 'room_availability') {
+    $view->element['#attached']['library'][] = 'custom_booking/global-library';
+  }
+}
+
+/**
+ * Implements hook_views_data().
+ */
+function custom_booking_views_data() {
+  $data['views']['table']['group'] = t('Custom Global');
+  $data['views']['table']['join'] = [
+    // #global is a special flag which allows a table to appear all the time.
+    '#global' => [],
+  ];
+
+  $data['views']['available_rooms'] = [
+    'title' => t('Available rooms'),
+    'help' => t('Show available room remaning capacity.'),
+    'field' => [
+      'id' => 'available_rooms',
+    ],
+  ];
+  return $data;
+}
+
+/**
+ * Ajax callback function.
+ */
+function custom_booking_update_room_list_callback(array &$form, FormStateInterface $form_state) {
+  $commonService = \Drupal::service('common_services');
+  $guesthouseId = $form_state->getValue('guesthouse');
+  $startDate = $form_state->getValue('start_date');
+  $endDate = $form_state->getValue('end_date');
+  $options = $commonService->getRoomListOptions($guesthouseId, $startDate, $endDate);
+  // Add dynamic options to assign room field.
+  $form['elements']['booking_details']['assign_room']['#options'] = $options;
+  $field_room_element = \Drupal::service('renderer')->render($form['elements']['booking_details']['assign_room']);
+
+  // Return the HTML of the updated element as the AJAX response.
+  $response = new AjaxResponse();
+  $response->addCommand(new HtmlCommand('#ajax-wrapper-field-offices', $field_room_element));
+
+  return $response;
+}
+
+/**
+ * Implements hook_webform_submission_presave().
+ */
+function custom_booking_webform_submission_presave(WebformSubmissionInterface $webform_submission) {
+  $commonService = \Drupal::service('common_services');
+  $employeeStatus = $webform_submission->getElementData('employee_status');
+  $emp = $webform_submission->getElementData('select_employee');
+  $isChargable = $webform_submission->getElementData('is_chargeable');
+  $guesthouse = $webform_submission->getElementData('guesthouse');
+  // Add exisiting employee name and email in field.
+  if ($employeeStatus == 'old' && !empty($emp)) {
+    $user = User::load($emp);
+    $email = $user->get('mail')->value;
+    $name = $user->get('name')->value;
+    $webform_submission->setElementData('employee_name', $name);
+    $webform_submission->setElementData('employee_email', $email);
+  }
+  // Guesthouse location and address.
+  if (!empty($guesthouse)) {
+    // Load the guesthouse term.
+    $term = Term::load($guesthouse);
+    $add = $term->get('field_address')->value;
+    $location = 'https://maps.google.com/?q=' . str_replace(' ', '', $term->get('field_lat_and_long')->value);
+    // Add address ano location in booking.
+    $webform_submission->setElementData('guesthouse_address', $add);
+    $webform_submission->setElementData('location', $location);
+  }
+  // Count total chargs and add it into the total amount field.
+  if ($isChargable == 1) {
+    $startDate = $webform_submission->getElementData('start_date');
+    $endDate = $webform_submission->getElementData('end_date');
+    $roomType = $webform_submission->getElementData('room_occupancy');
+    $totalDays = $commonService->getTotalDays($startDate, $endDate);
+    $charges = $commonService->totalCostCalculation($totalDays, $roomType);
+    $webform_submission->setElementData('total_amount', $charges);
+  }
+  else {
+    $webform_submission->setElementData('total_amount', 0);
+  }
+}
+
+/**
+ * Implements hook_webform_submission_insert().
+ */
+function custom_booking_webform_submission_insert(WebformSubmissionInterface $webform_submission) {
+  // Call a function to create or update the corresponding node.
+  custom_booking_create_update_booking_node($webform_submission);
+}
+
+/**
+ * Implements hook_webform_submission_update().
+ */
+function custom_booking_webform_submission_update(WebformSubmissionInterface $webform_submission) {
+  // Call a function to create or update the corresponding node.
+  custom_booking_create_update_booking_node($webform_submission);
+}
+
+/**
+ * Implements hook_webform_submission_delete().
+ */
+function custom_booking_webform_submission_delete(WebformSubmissionInterface $webform_submission) {
+  // Call a function to delete the corresponding node.
+  custom_booking_delete_booking_node($webform_submission);
+}
+
+/**
+ * Create or update the corresponding Booking node.
+ */
+function custom_booking_create_update_booking_node(WebformSubmissionInterface $webform_submission) {
+  // Extract data from the webform submission.
+  $data = $webform_submission->getData();
+  // Create all values array.
+  $nodeValues = [
+    'type' => 'booking_history',
+    'title' => t('Booking from: :start_date to :end_date', [
+      ':start_date' => $data['start_date'],
+      ':end_date' => $data['end_date'],
+    ]),
+    'field_submission_id' => $webform_submission->id(),
+    'field_booking_start_date' => $data['start_date'],
+    'field_booking_end_date' => $data['end_date'],
+    'field_guest_house' => $data['guesthouse'],
+    'field_room_name' => $data['assign_room'],
+    'field_room_type' => $data['room_occupancy'],
+  ];
+  // Check if a node already exists for this submission.
+  $existing_node = custom_booking_load_booking_node($webform_submission->id());
+
+  if ($existing_node) {
+    // Node exists, then update it.
+    $node = Node::load($existing_node->id());
+    foreach ($nodeValues as $fieldName => $fieldValue) {
+      $node->set($fieldName, $fieldValue);
+    }
+    $node->save();
+  }
+  else {
+    // Node doesn't exist, then create it.
+    $node = Node::create($nodeValues);
+    $node->save();
+  }
+}
+
+/**
+ * Delete the corresponding Booking node.
+ */
+function custom_booking_delete_booking_node(WebformSubmissionInterface $webform_submission) {
+  // Extract data from the webform submission.
+  $submissionId = $webform_submission->id();
+
+  // Load the Booking node based on webform submission ID.
+  $node = custom_booking_load_booking_node($submissionId);
+
+  if ($node) {
+    // Node exists, delete it.
+    $node->delete();
+  }
+}
+
+/**
+ * Load the Booking node based on webform submission ID.
+ */
+function custom_booking_load_booking_node($submissionId) {
+  $query = \Drupal::entityQuery('node')
+    ->condition('type', 'booking_history')
+    ->condition('field_submission_id', $submissionId)
+    ->accessCheck(TRUE)
+    ->range(0, 1);
+
+  $nids = $query->execute();
+  return reset($nids) ? Node::load(reset($nids)) : NULL;
+}
+
+/**
+ * Cron job to send booking reports over email.
+ */
+function custom_booking_monthly_report() {
+  \Drupal::service('common_services')->bookingReport();
+}
+
+/**
+ * Custom booking overlapping validation.
+ */
+function custom_booking_webform_custom_booking_validation($form, FormStateInterface $form_state) {
+  $startDate = $form_state->getValue('start_date');
+  $endDate = $form_state->getValue('end_date');
+  $guesthouse = $form_state->getValue('guesthouse');
+  $roomOccupancy = $form_state->getValue('room_occupancy');
+  $roomId = $form_state->getValue('assign_room');
+  $commonService = \Drupal::service('common_services');
+  // Get the submission ID from the route parameters.
+  $submission_id = $commonService->getSubmissionId();
+  if ($submission_id instanceof WebformSubmission) {
+    $submission_id = $submission_id->id();
+  }
+  // Ensure that the end date is not before the start date.
+  if (!empty($startDate) && !empty($endDate) && strtotime($endDate) < strtotime($startDate)) {
+    $form_state->setErrorByName('end_date', t('End date cannot be a past date compared to the start date.'));
+  }
+  else {
+    // Check if there are overlapping bookings.
+    if (!empty($guesthouse) && !empty($roomOccupancy) && !empty($roomId)) {
+      $bookedRoomNids = $commonService->getBookedNids($startDate, $endDate, $roomId, $guesthouse);
+      // For edit form confition.
+      if (!empty($submission_id) || $submission_id != '') {
+        if (in_array($submission_id, $bookedRoomNids)) {
+          $bookedRoomNids = array_diff($bookedRoomNids, [$submission_id]);
+        }
+      }
+      if (count($bookedRoomNids) == 1) {
+        $submission = WebformSubmission::load(reset($bookedRoomNids));
+        if ($submission) {
+          $occupancy = $submission->getElementData('room_occupancy');
+        }
+      }
+      // Load room capacity.
+      $roomCapacity = $commonService->getRoomCapacity($roomId);
+      // Check for single occupancy.
+      if ($roomOccupancy == 'single' && count($bookedRoomNids) >= 1) {
+        $form_state->setErrorByName('assign_room', t('The room is fully booked for single occupancy during the selected date range.'));
+      }
+      elseif ($occupancy == 'single' && $roomOccupancy == 'shared') {
+        // If user booked single room in date range,
+        // then restrict them to create shared booking.
+        $form_state->setErrorByName('assign_room', t('The room is fully booked within the specified date range.'));
+      }
+      elseif ($roomOccupancy == 'shared' && (count($bookedRoomNids) >= $roomCapacity)) {
+        // If room is shared and check room capacity.
+        $form_state->setErrorByName('assign_room', t('The room is fully booked within the specified date range.'));
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_mail().
+ */
+function custom_booking_mail($key, &$message, $params) {
+  switch ($key) {
+    case 'monthly_report_email_notification_key':
+      $message['from'] = \Drupal::config('system.site')->get('mail');
+      $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed; delsp=yes';
+      $message['subject'] = $params['subject'];
+      $message['body'][] = $params['message'];
+      if (isset($params['attachments'])) {
+        $message['params']['files'] = $params['attachments'];
+      }
+
+      break;
+  }
+}
+
+/**
+ * Implements hook_form_user_admin_settings_alter_alter().
+ */
+function custom_booking_form_user_admin_settings_alter(array &$form, FormStateInterface $form_state) {
+  // Alter admin for and add option for monthly report email.
+  $mail_config = \Drupal::config('user.mail');
+  $form['monthly_report_mail'] = [
+    '#type' => 'details',
+    '#title' => 'Send monthly booking report mail',
+    '#description' => 'Edit the email messages sent email.The list of available tokens that can be used in e-mails is provided below.',
+    '#group' => 'email',
+    '#weight' => 10,
+  ];
+
+  $form['monthly_report_mail']['monthly_mail_subject'] = [
+    '#type' => 'textfield',
+    '#title' => 'Subject',
+    '#default_value' => $mail_config->get('report_mail.subject'),
+    '#maxlength' => 180,
+  ];
+
+  $form['monthly_report_mail']['monthly_mail_body'] = [
+    '#type' => 'textarea',
+    '#title' => 'Body',
+    '#default_value' => $mail_config->get('report_mail.body'),
+    '#rows' => 12,
+  ];
+
+  $form['#submit'][] = 'custom_booking_form_user_admin_settings_submit';
+}
+
+/**
+ * Submit handler for admin settings form.
+ */
+function custom_booking_form_user_admin_settings_submit(&$form, FormStateInterface $form_state) {
+  $mail_config = \Drupal::configFactory()->getEditable('user.mail');
+  $mail_config->set('report_mail.subject', $form_state->getValue('monthly_mail_subject'));
+  $mail_config->set('report_mail.body', $form_state->getValue('monthly_mail_body'));
+  $mail_config->save();
+}
+
+/**
+ * Implements hook_preprocess_views_view().
+ */
+function custom_booking_preprocess_views_view(array &$variables) {
+  // Replace 'your_view_name' with the machine name of your view.
+  if ($variables['view']->id() == 'room_details' && $variables['display_id'] == 'page_1') {
+    $variables['#attached']['library'][] = 'custom_booking/global-library';
+  }
+}
+
+/**
+ * Implements TEMPLATE_preprocess_views_view_field().
+ */
+function custom_booking_preprocess_views_view_field(&$variables) {
+  // In rooms avaiblity page alter custom text
+  // and add dynamic add and view booking links.
+  $view = $variables['view'];
+  if ($view->id() == 'room_availability' && $view->current_display == 'page_1') {
+    global $base_url;
+    $startDate = \Drupal::request()->query->get('start_date');
+    $endDate = \Drupal::request()->query->get('end_date');
+    if (empty($startDate)) {
+      $startDate = date('Y-m-d');
+    }
+    if (empty($endDate)) {
+      $endDate = date('Y-m-d');
+    }
+    foreach ($view->field as $fid => $field) {
+      if ($fid == 'nothing') {
+        // $val = $view->field['available_rooms']->render($row)['#markup'];
+        $view->field['nothing']->options['alter']['text'] =
+        '<a href="' . $base_url . '/form/create-booking?start_date=' . $startDate . '&end_date=' . $endDate . '&guesthouse={{ field_guesthouse_1 }}&assign_room={{ nid }}" class="add-booking disabled" target="_blank"><img src="' . $base_url . '/sites/default/files/images/add.png" alt="Add New Booking"></a>
+        <a href="' . $base_url . '/bookings?start_date=' . $startDate . '&end_date=' . $endDate . '&guesthouse={{ field_guesthouse_1 }}&assign_room={{ nid }}" class="view-booking use-ajax" data-dialog-options="{&quot;width&quot;:800, &quot;title&quot;:&quot;Bookings&quot;}" data-dialog-type="modal"><img src="' . $base_url . '/sites/default/files/images/search.png" alt="View Booking"></a>';
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function custom_booking_theme($existing, $type, $theme, $path) {
+  return [
+    'error_404' => [
+      'variables' => ['on404' => NULL],
+    ],
+  ];
+}

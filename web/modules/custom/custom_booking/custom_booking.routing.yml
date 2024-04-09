@@ -1,0 +1,14 @@
+custom_booking.settings:
+  path: '/admin/config/price-set'
+  defaults:
+    _form: '\Drupal\custom_booking\Form\BookingPriceSettingsForm'
+    _title: 'Booking Cost Settings'
+  requirements:
+    _role: 'administrator+admin_team'
+
+custom_booking.404:
+  path: '/system/404'
+  defaults:
+    _controller: '\Drupal\custom_booking\Controller\Http4xxController:on404'
+  requirements:
+    _access: 'TRUE'

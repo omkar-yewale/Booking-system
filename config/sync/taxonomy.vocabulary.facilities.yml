@@ -1,0 +1,8 @@
+uuid: 3af2386b-9f71-4ce0-b858-c60d17382979
+langcode: en
+status: true
+dependencies: {  }
+name: Facilities
+vid: facilities
+description: 'Facilities for room'
+weight: 0

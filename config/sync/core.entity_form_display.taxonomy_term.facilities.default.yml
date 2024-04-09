@@ -1,0 +1,41 @@
+uuid: f46535f4-283b-4077-b287-ae007647e5b4
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.taxonomy_term.facilities.field_facility_image
+    - image.style.thumbnail
+    - taxonomy.vocabulary.facilities
+  module:
+    - image
+id: taxonomy_term.facilities.default
+targetEntityType: taxonomy_term
+bundle: facilities
+mode: default
+content:
+  field_facility_image:
+    type: image_image
+    weight: 1
+    region: content
+    settings:
+      progress_indicator: throbber
+      preview_image_style: thumbnail
+    third_party_settings: {  }
+  name:
+    type: string_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  status:
+    type: boolean_checkbox
+    weight: 2
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
+hidden:
+  description: true
+  path: true
