@@ -1,0 +1,8 @@
+uuid: 49fd0745-3262-422a-8f89-dc0fa10a6fd5
+langcode: en
+status: true
+dependencies: {  }
+id: user-menu
+label: 'User Menu'
+description: 'Menu for user role.'
+locked: false

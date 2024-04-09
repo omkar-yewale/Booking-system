@@ -1,0 +1,16 @@
+uuid: cc311b50-e611-4740-a851-0529fe339deb
+langcode: en
+status: true
+dependencies: {  }
+name: one_time_link
+label: 'One time link'
+triggers:
+  logout: logout
+destination_path: 'internal:/'
+pages_type: 0
+pages: ''
+language: ''
+roles:
+  user: user
+weight: 0
+enabled: true

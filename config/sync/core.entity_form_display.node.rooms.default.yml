@@ -4,9 +4,13 @@ status: true
 dependencies:
   config:
     - field.field.node.rooms.body
+    - field.field.node.rooms.field_facilities
     - field.field.node.rooms.field_guesthouse
     - field.field.node.rooms.field_room_capacity
+    - field.field.node.rooms.field_room_images
     - node.type.rooms
+  module:
+    - media_library
 id: node.rooms.default
 targetEntityType: node
 bundle: rooms
@@ -14,9 +18,19 @@ mode: default
 content:
   created:
     type: datetime_timestamp
-    weight: 3
+    weight: 5
     region: content
     settings: {  }
+    third_party_settings: {  }
+  field_facilities:
+    type: entity_reference_autocomplete
+    weight: 3
+    region: content
+    settings:
+      match_operator: CONTAINS
+      match_limit: 10
+      size: 60
+      placeholder: ''
     third_party_settings: {  }
   field_guesthouse:
     type: options_select
@@ -31,9 +45,16 @@ content:
     settings:
       placeholder: ''
     third_party_settings: {  }
+  field_room_images:
+    type: media_library_widget
+    weight: 4
+    region: content
+    settings:
+      media_types: {  }
+    third_party_settings: {  }
   status:
     type: boolean_checkbox
-    weight: 5
+    weight: 7
     region: content
     settings:
       display_label: true
@@ -48,7 +69,7 @@ content:
     third_party_settings: {  }
   uid:
     type: entity_reference_autocomplete
-    weight: 4
+    weight: 6
     region: content
     settings:
       match_operator: CONTAINS

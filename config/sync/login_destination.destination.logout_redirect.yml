@@ -15,5 +15,6 @@ roles:
   content_editor: content_editor
   administrator: administrator
   admin_team: admin_team
+  user: user
 weight: 0
 enabled: true

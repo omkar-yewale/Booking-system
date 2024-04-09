@@ -9,6 +9,10 @@ dependencies:
     - taxonomy.vocabulary.guesthouse
     - user.role.admin_team
     - user.role.administrator
+    - user.role.anonymous
+    - user.role.authenticated
+    - user.role.content_editor
+    - user.role.user
   module:
     - better_exposed_filters
     - custom_booking
@@ -412,7 +416,7 @@ display:
           exclude: false
           alter:
             alter_text: true
-            text: "<a href=\"#\" class=\"icon-link\">\r\n    <img src=\"/sites/default/files/image/add.png\" alt=\"Add Icon\">\r\n</a>\r\n"
+            text: "<a href=\"#\" class=\"icon-link\">\r\n    <img src=\"/sites/default/files/images/add.png\" alt=\"Add Icon\">\r\n</a>\r\n"
             make_link: false
             path: ''
             absolute: false
@@ -498,7 +502,7 @@ display:
         options:
           role:
             administrator: administrator
-            admin_team: admin_team
+            user: user
       cache:
         type: none
         options: {  }
@@ -697,9 +701,50 @@ display:
     display_plugin: page
     position: 1
     display_options:
+      access:
+        type: role
+        options:
+          role:
+            authenticated: authenticated
+            content_editor: content_editor
+            administrator: administrator
+            admin_team: admin_team
+      defaults:
+        access: false
       display_description: ''
       display_extenders: {  }
       path: room-availability
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url
+        - url.query_args
+        - user
+        - 'user.node_grants:view'
+        - user.roles
+      tags:
+        - 'config:field.storage.node.field_guesthouse'
+        - 'config:field.storage.node.field_room_capacity'
+  page_2:
+    id: page_2
+    display_title: 'Check Rooms Availability'
+    display_plugin: page
+    position: 1
+    display_options:
+      access:
+        type: role
+        options:
+          role:
+            anonymous: anonymous
+            administrator: administrator
+            user: user
+      defaults:
+        access: false
+      display_description: ''
+      display_extenders: {  }
+      path: check-room-availability
     cache_metadata:
       max-age: -1
       contexts:

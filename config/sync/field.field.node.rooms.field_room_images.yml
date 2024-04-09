@@ -1,0 +1,29 @@
+uuid: fda1b205-dd07-4d5a-85aa-30c4a196fb89
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_room_images
+    - media.type.image
+    - node.type.rooms
+id: node.rooms.field_room_images
+field_name: field_room_images
+entity_type: node
+bundle: rooms
+label: 'Room Images'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:media'
+  handler_settings:
+    target_bundles:
+      image: image
+    sort:
+      field: _none
+      direction: ASC
+    auto_create: false
+    auto_create_bundle: image
+field_type: entity_reference
