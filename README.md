@@ -1,2 +1,2 @@
-# Guesthouse-Booking
-Guesthouse booking system for Rishabh software.
+# Booking-system
+Online booking system for PG, Guesthouse ETC.
