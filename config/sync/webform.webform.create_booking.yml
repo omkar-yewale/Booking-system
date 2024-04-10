@@ -131,6 +131,8 @@ elements: |-
       '#type': checkbox
       '#title': 'Is chargeable'
       '#help': '<p>Select the checkbox if the booking incurs charges.</p>'
+      '#disabled': true
+      '#default_value': true
     total_amount:
       '#type': number
       '#title': 'Total amount'
@@ -383,9 +385,13 @@ handlers:
       return_path: ''
       sender_mail: ''
       sender_name: ''
-      subject: 'Rishabh Software Guesthouse Booking'
-      body: "Hi [webform_submission:values:employee_name],\r\n\r\nYour reservation at Rishabh Software Guesthouse has been successfully created.\r\n\r\nBooking Dates\r\n-------------\r\nStart Date: [webform_submission:values:start_date]\r\nEnd Date: [webform_submission:values:end_date]\r\n\r\nBooking Details\r\n--------------\r\nGuest House: [webform_submission:values:guesthouse:label]\r\nRoom Occupancy: [webform_submission:values:room_occupancy]\r\nAssign Room: [webform_submission:values:assign_room:label]\r\n\r\nEmployee Details\r\n---------------\r\nEmployee Status: [webform_submission:values:employee_status]\r\nEmployee Name: [webform_submission:values:employee_name]\r\nEmployee Email: [webform_submission:values:employee_email]\r\nIs Chargeable: [webform_submission:values:is_chargeable]\r\nTotal Amount: [webform_submission:values:total_amount]\r\nGuest House Address: [webform_submission:values:guesthouse_address]\r\nLocation: [webform_submission:values:location]\r\n\r\nCreated by: [webform_submission:user]\r\nCreated on [webform_submission:created]\r\n\r\nFor more details please contact Admin team.\r\n\r\nThank you.\r\n"
-      excluded_elements: {  }
+      subject: 'PG/Guesthouse Booking Created'
+      body: "Hi [webform_submission:values:employee_name],\r\n\r\nYour reservation has been successfully created.\r\n\r\nBooking Dates\r\n-------------\r\nStart Date: [webform_submission:values:start_date]\r\nEnd Date: [webform_submission:values:end_date]\r\n\r\nBooking Details\r\n--------------\r\nGuest House: [webform_submission:values:guesthouse:label]\r\nRoom Occupancy: [webform_submission:values:room_occupancy]\r\nAssign Room: [webform_submission:values:assign_room:label]\r\n\r\nEmployee Details\r\n---------------\r\nEmployee Status: [webform_submission:values:employee_status]\r\nEmployee Name: [webform_submission:values:employee_name]\r\nEmployee Email: [webform_submission:values:employee_email]\r\nIs Chargeable: [webform_submission:values:is_chargeable]\r\nTotal Amount: [webform_submission:values:total_amount]\r\nGuest House Address: [webform_submission:values:guesthouse_address]\r\nLocation: [webform_submission:values:location]\r\n\r\nCreated by: [webform_submission:user]\r\nCreated on [webform_submission:created]\r\n\r\nFor more details please contact Admin team.\r\n\r\nThank you.\r\n"
+      excluded_elements:
+        employee_status: employee_status
+        select_employee: select_employee
+        employee_name: employee_name
+        employee_email: employee_email
       ignore_access: false
       exclude_empty: true
       exclude_empty_checkbox: false
@@ -420,8 +426,8 @@ handlers:
       return_path: '[site:mail]'
       sender_mail: ''
       sender_name: ''
-      subject: 'Rishabh Software Guesthouse Booking'
-      body: "Hi [webform_submission:values:employee_name],\r\n\r\nYour reservation at Rishabh Software Guesthouse has been successfully updated.\r\n\r\nBooking Dates\r\n-------------\r\nStart Date: [webform_submission:values:start_date]\r\nEnd Date: [webform_submission:values:end_date]\r\n\r\nBooking Details\r\n--------------\r\nGuest House: [webform_submission:values:guesthouse:label]\r\nRoom Occupancy: [webform_submission:values:room_occupancy]\r\nAssign Room: [webform_submission:values:assign_room:label]\r\n\r\nEmployee Details\r\n---------------\r\nEmployee Status: [webform_submission:values:employee_status]\r\nEmployee Name: [webform_submission:values:employee_name]\r\nEmployee Email: [webform_submission:values:employee_email]\r\nIs Chargeable: [webform_submission:values:is_chargeable]\r\nTotal Amount: [webform_submission:values:total_amount]\r\nGuest House Address: [webform_submission:values:guesthouse_address]\r\nLocation: [webform_submission:values:location]\r\n\r\nCreated by: [webform_submission:user]\r\nCreated on [webform_submission:created]\r\n\r\nFor more details please contact Admin team.\r\n\r\nThank you.\r\n"
+      subject: 'PG/Guesthouse Booking Updated'
+      body: "Hi [webform_submission:values:employee_name],\r\n\r\nYour reservation has been successfully updated.\r\n\r\nBooking Dates\r\n-------------\r\nStart Date: [webform_submission:values:start_date]\r\nEnd Date: [webform_submission:values:end_date]\r\n\r\nBooking Details\r\n--------------\r\nGuest House: [webform_submission:values:guesthouse:label]\r\nRoom Occupancy: [webform_submission:values:room_occupancy]\r\nAssign Room: [webform_submission:values:assign_room:label]\r\n\r\nEmployee Details\r\n---------------\r\nEmployee Status: [webform_submission:values:employee_status]\r\nEmployee Name: [webform_submission:values:employee_name]\r\nEmployee Email: [webform_submission:values:employee_email]\r\nIs Chargeable: [webform_submission:values:is_chargeable]\r\nTotal Amount: [webform_submission:values:total_amount]\r\nGuest House Address: [webform_submission:values:guesthouse_address]\r\nLocation: [webform_submission:values:location]\r\n\r\nCreated by: [webform_submission:user]\r\nCreated on [webform_submission:created]\r\n\r\nFor more details please contact Admin team.\r\n\r\nThank you.\r\n"
       excluded_elements: {  }
       ignore_access: false
       exclude_empty: true

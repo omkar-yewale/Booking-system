@@ -11,8 +11,8 @@ field_name: field_facilities
 entity_type: node
 bundle: rooms
 label: Facilities
-description: ''
-required: false
+description: 'Please type and enter to search and create new facility.'
+required: true
 translatable: false
 default_value: {  }
 default_value_callback: ''

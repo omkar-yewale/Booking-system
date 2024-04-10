@@ -229,7 +229,7 @@ function custom_booking_webform_submission_presave(WebformSubmissionInterface $w
  */
 function custom_booking_webform_submission_insert(WebformSubmissionInterface $webform_submission) {
   // Call a function to create or update the corresponding node.
-  custom_booking_create_update_booking_node($webform_submission);
+  //custom_booking_create_update_booking_node($webform_submission);
 }
 
 /**
@@ -237,7 +237,7 @@ function custom_booking_webform_submission_insert(WebformSubmissionInterface $we
  */
 function custom_booking_webform_submission_update(WebformSubmissionInterface $webform_submission) {
   // Call a function to create or update the corresponding node.
-  custom_booking_create_update_booking_node($webform_submission);
+  //custom_booking_create_update_booking_node($webform_submission);
 }
 
 /**
@@ -245,7 +245,7 @@ function custom_booking_webform_submission_update(WebformSubmissionInterface $we
  */
 function custom_booking_webform_submission_delete(WebformSubmissionInterface $webform_submission) {
   // Call a function to delete the corresponding node.
-  custom_booking_delete_booking_node($webform_submission);
+  //custom_booking_delete_booking_node($webform_submission);
 }
 
 /**
